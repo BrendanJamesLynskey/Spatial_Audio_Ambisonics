@@ -1,0 +1,2087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial Audio &amp; Ambisonics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0806;
+            --panel: #111010;
+            --panel-border: rgba(212,135,14,0.1);
+            --accent-1: #d4870e;
+            --accent-2: #b8621b;
+            --accent-3: #e8a849;
+            --accent-4: #c9955a;
+            --accent-5: #8b6914;
+            --text: #e8e0d4;
+            --text-dim: rgba(255,245,230,0.45);
+            --text-muted: rgba(255,245,230,0.25);
+            --glow-1: rgba(212,135,14,0.3);
+            --glow-2: rgba(184,98,27,0.2);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:'DM Sans',sans-serif;
+            background:var(--bg);
+            color:var(--text);
+            min-height:100vh;
+            overflow-x:hidden;
+            user-select:none;
+        }
+        ::-webkit-scrollbar { width:4px; }
+        ::-webkit-scrollbar-thumb { background:var(--accent-5); border-radius:2px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+
+        /* Header */
+        .header {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:10px 20px;
+            border-bottom:1px solid var(--panel-border);
+            background:var(--panel);
+            height:48px;
+        }
+        .header-left {
+            display:flex;
+            align-items:center;
+            gap:12px;
+        }
+        .logo {
+            font-size:1.2rem;
+            font-weight:700;
+            background:linear-gradient(135deg,var(--accent-3),var(--accent-1));
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .logo-sub {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.72rem;
+            color:var(--text-muted);
+            letter-spacing:0.15em;
+            text-transform:uppercase;
+        }
+        .header-right {
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+        .hdr-btn {
+            background:rgba(212,135,14,0.08);
+            border:1px solid var(--panel-border);
+            color:var(--text);
+            padding:6px 14px;
+            border-radius:6px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.78rem;
+            cursor:pointer;
+            transition:all 0.2s;
+            letter-spacing:0.05em;
+        }
+        .hdr-btn:hover {
+            background:rgba(212,135,14,0.15);
+            border-color:var(--accent-1);
+        }
+        .hdr-btn.active {
+            background:var(--accent-1);
+            color:#0a0806;
+            border-color:var(--accent-1);
+        }
+
+        /* Tabs */
+        .tab-bar {
+            display:flex;
+            background:var(--panel);
+            border-bottom:1px solid var(--panel-border);
+            padding:0 16px;
+            gap:2px;
+        }
+        .tab {
+            padding:8px 16px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.78rem;
+            color:var(--text-dim);
+            cursor:pointer;
+            border-bottom:2px solid transparent;
+            transition:all 0.2s;
+            letter-spacing:0.05em;
+        }
+        .tab:hover { color:var(--text); }
+        .tab.active {
+            color:var(--accent-3);
+            border-bottom-color:var(--accent-1);
+        }
+
+        /* Main Layout */
+        .main {
+            display:grid;
+            grid-template-columns:260px 1fr 280px;
+            height:calc(100vh - 48px - 36px);
+        }
+
+        /* Left Panel */
+        .left-panel {
+            background:var(--panel);
+            border-right:1px solid var(--panel-border);
+            overflow-y:auto;
+            padding:12px;
+        }
+        .section-title {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.72rem;
+            color:var(--accent-3);
+            text-transform:uppercase;
+            letter-spacing:0.15em;
+            margin-bottom:8px;
+            margin-top:12px;
+        }
+        .section-title:first-child { margin-top:0; }
+
+        .source-item {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            padding:6px 8px;
+            border-radius:5px;
+            cursor:pointer;
+            transition:background 0.15s;
+            margin-bottom:2px;
+            font-size:0.85rem;
+        }
+        .source-item:hover { background:rgba(212,135,14,0.08); }
+        .source-item.selected { background:rgba(212,135,14,0.12); border:1px solid var(--panel-border); }
+        .source-dot {
+            width:10px; height:10px; border-radius:50%; flex-shrink:0;
+        }
+        .source-label { flex:1; font-size:0.82rem; }
+        .source-info {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.68rem;
+            color:var(--text-dim);
+        }
+
+        /* Controls */
+        .ctrl-group { margin-bottom:12px; }
+        .ctrl-label {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.7rem;
+            color:var(--text-dim);
+            margin-bottom:4px;
+            display:flex;
+            justify-content:space-between;
+        }
+        .ctrl-label span { color:var(--accent-3); }
+        input[type="range"] {
+            width:100%;
+            -webkit-appearance:none;
+            height:4px;
+            background:rgba(212,135,14,0.15);
+            border-radius:2px;
+            outline:none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance:none;
+            width:14px; height:14px;
+            background:var(--accent-1);
+            border-radius:50%;
+            cursor:pointer;
+            box-shadow:0 0 6px var(--glow-1);
+        }
+        select {
+            width:100%;
+            background:rgba(212,135,14,0.08);
+            border:1px solid var(--panel-border);
+            color:var(--text);
+            padding:5px 8px;
+            border-radius:4px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.75rem;
+            cursor:pointer;
+            outline:none;
+        }
+        select:focus { border-color:var(--accent-1); }
+        option { background:var(--panel); }
+
+        .btn {
+            background:rgba(212,135,14,0.1);
+            border:1px solid var(--panel-border);
+            color:var(--text);
+            padding:6px 12px;
+            border-radius:5px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.75rem;
+            cursor:pointer;
+            transition:all 0.2s;
+            width:100%;
+            margin-bottom:4px;
+        }
+        .btn:hover { background:rgba(212,135,14,0.2); border-color:var(--accent-1); }
+        .btn.active { background:var(--accent-1); color:#0a0806; }
+        .btn-row { display:flex; gap:4px; }
+        .btn-row .btn { flex:1; }
+
+        /* Center Canvas */
+        .center-panel {
+            position:relative;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:var(--bg);
+            overflow:hidden;
+        }
+        #mainCanvas {
+            border-radius:4px;
+        }
+
+        /* Right Panel */
+        .right-panel {
+            background:var(--panel);
+            border-left:1px solid var(--panel-border);
+            overflow-y:auto;
+            padding:12px;
+        }
+        .vis-canvas-wrap {
+            width:100%;
+            aspect-ratio:1;
+            margin-bottom:8px;
+            border:1px solid var(--panel-border);
+            border-radius:4px;
+            overflow:hidden;
+        }
+        .vis-canvas-wrap canvas { width:100%; height:100%; display:block; }
+
+        .metric-row {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:4px 0;
+            border-bottom:1px solid rgba(212,135,14,0.05);
+            font-size:0.8rem;
+        }
+        .metric-label {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.7rem;
+            color:var(--text-dim);
+        }
+        .metric-value {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.75rem;
+            color:var(--accent-3);
+        }
+
+        .gain-bar-wrap {
+            display:flex;
+            align-items:center;
+            gap:6px;
+            margin-bottom:4px;
+        }
+        .gain-bar-label {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.68rem;
+            color:var(--text-dim);
+            width:30px;
+            text-align:right;
+        }
+        .gain-bar-track {
+            flex:1;
+            height:6px;
+            background:rgba(212,135,14,0.08);
+            border-radius:3px;
+            overflow:hidden;
+        }
+        .gain-bar-fill {
+            height:100%;
+            background:linear-gradient(90deg,var(--accent-2),var(--accent-3));
+            border-radius:3px;
+            transition:width 0.1s;
+        }
+        .gain-bar-val {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.68rem;
+            color:var(--accent-3);
+            width:36px;
+        }
+
+        /* HRTF chart area */
+        .hrtf-chart-wrap {
+            width:100%;
+            height:120px;
+            margin-bottom:8px;
+            border:1px solid var(--panel-border);
+            border-radius:4px;
+            overflow:hidden;
+        }
+        .hrtf-chart-wrap canvas { width:100%; height:100%; display:block; }
+
+        .eq-block {
+            background:rgba(212,135,14,0.04);
+            border:1px solid var(--panel-border);
+            border-radius:4px;
+            padding:8px;
+            margin-bottom:8px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.7rem;
+            color:var(--text-dim);
+            line-height:1.6;
+        }
+        .eq-block .hl { color:var(--accent-3); }
+
+        /* Tab content visibility */
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+
+        /* Overlay info */
+        .overlay-info {
+            position:absolute;
+            bottom:12px; left:12px;
+            background:rgba(17,16,16,0.9);
+            border:1px solid var(--panel-border);
+            border-radius:6px;
+            padding:8px 12px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.72rem;
+            color:var(--text-dim);
+            pointer-events:none;
+        }
+        .overlay-info .val { color:var(--accent-3); }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <div class="logo">Spatial Audio</div>
+        <div class="logo-sub">Ambisonics &amp; Binaural</div>
+    </div>
+    <div class="header-right">
+        <button class="hdr-btn" id="btnStartAudio">START AUDIO</button>
+        <button class="hdr-btn" id="btnHeadphone">HEADPHONES</button>
+        <button class="hdr-btn" id="btnSpeaker">SPEAKERS</button>
+    </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+    <div class="tab active" data-tab="binaural">Binaural Panner</div>
+    <div class="tab" data-tab="ambisonics">Ambisonics</div>
+    <div class="tab" data-tab="soundfield">Sound Field</div>
+    <div class="tab" data-tab="speakers">Speaker Config</div>
+    <div class="tab" data-tab="hrtf">HRTF Explorer</div>
+</div>
+
+<!-- Main Layout -->
+<div class="main">
+    <!-- Left Panel -->
+    <div class="left-panel">
+        <div class="section-title">Sound Sources</div>
+        <div id="sourceList"></div>
+
+        <button class="btn" id="btnAddSource" style="margin-top:8px">+ Add Source</button>
+        <button class="btn" id="btnRemoveSource">- Remove Selected</button>
+
+        <div class="section-title">Selected Source</div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Type</div>
+            <select id="selSourceType">
+                <option value="whitenoise">White Noise</option>
+                <option value="pinknoise">Pink Noise</option>
+                <option value="sine">Sine Tone</option>
+                <option value="drumloop">Drum Loop</option>
+                <option value="mic">Microphone</option>
+            </select>
+        </div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Frequency <span id="lblFreq">440 Hz</span></div>
+            <input type="range" id="sldFreq" min="60" max="4000" value="440">
+        </div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Volume <span id="lblVol">0.7</span></div>
+            <input type="range" id="sldVol" min="0" max="100" value="70">
+        </div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Mute</div>
+            <button class="btn" id="btnMute">MUTE</button>
+        </div>
+
+        <div class="section-title">Distance Model</div>
+        <select id="selDistModel">
+            <option value="inverse">Inverse</option>
+            <option value="linear">Linear</option>
+            <option value="exponential">Exponential</option>
+        </select>
+
+        <div class="ctrl-group" style="margin-top:8px">
+            <div class="ctrl-label">Ref Distance <span id="lblRefDist">1.0</span></div>
+            <input type="range" id="sldRefDist" min="1" max="20" value="1" step="0.5">
+        </div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Max Distance <span id="lblMaxDist">50</span></div>
+            <input type="range" id="sldMaxDist" min="10" max="200" value="50">
+        </div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Rolloff Factor <span id="lblRolloff">1.0</span></div>
+            <input type="range" id="sldRolloff" min="0" max="5" value="1" step="0.1">
+        </div>
+    </div>
+
+    <!-- Center -->
+    <div class="center-panel">
+        <canvas id="mainCanvas"></canvas>
+        <div class="overlay-info" id="overlayInfo">
+            Click to add sources | Drag to move | Scroll to zoom
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+        <!-- Binaural Tab -->
+        <div class="tab-content active" data-panel="binaural">
+            <div class="section-title">Source Metrics</div>
+            <div id="sourceMetrics"></div>
+
+            <div class="section-title">B-Format Patterns</div>
+            <div class="vis-canvas-wrap"><canvas id="canvasBformat" width="256" height="256"></canvas></div>
+
+            <div class="section-title">Encoding Equations</div>
+            <div class="eq-block">
+                <span class="hl">W</span> = S<br>
+                <span class="hl">X</span> = S &middot; cos(&theta;) &middot; cos(&phi;)<br>
+                <span class="hl">Y</span> = S &middot; sin(&theta;) &middot; cos(&phi;)<br>
+                <span class="hl">Z</span> = S &middot; sin(&phi;)
+            </div>
+        </div>
+
+        <!-- Ambisonics Tab -->
+        <div class="tab-content" data-panel="ambisonics">
+            <div class="section-title">First-Order Ambisonics</div>
+            <div class="eq-block">
+                <span class="hl">Encoding:</span><br>
+                W = S (omnidirectional)<br>
+                X = S &middot; cos(&theta;)cos(&phi;)<br>
+                Y = S &middot; sin(&theta;)cos(&phi;)<br>
+                Z = S &middot; sin(&phi;)<br><br>
+                <span class="hl">B-format channels:</span><br>
+                W = pressure (omni)<br>
+                X = front-back (fig-8)<br>
+                Y = left-right (fig-8)<br>
+                Z = up-down (fig-8)
+            </div>
+
+            <div class="section-title">B-Format Polar Patterns</div>
+            <div class="vis-canvas-wrap"><canvas id="canvasAmbiPatterns" width="256" height="256"></canvas></div>
+
+            <div class="section-title">Virtual Speaker Decode</div>
+            <div id="virtualSpeakerList"></div>
+
+            <div class="section-title">B-Format Levels</div>
+            <div id="bformatLevels"></div>
+        </div>
+
+        <!-- Sound Field Tab -->
+        <div class="tab-content" data-panel="soundfield">
+            <div class="section-title">Pressure Field</div>
+            <div class="vis-canvas-wrap"><canvas id="canvasPressure" width="256" height="256"></canvas></div>
+
+            <div class="ctrl-group">
+                <div class="ctrl-label">Frequency <span id="lblFieldFreq">440 Hz</span></div>
+                <input type="range" id="sldFieldFreq" min="20" max="2000" value="440">
+            </div>
+            <div class="ctrl-group">
+                <div class="ctrl-label">Wavelength <span id="lblWavelength">0.78 m</span></div>
+            </div>
+            <div class="ctrl-group">
+                <div class="ctrl-label">Animation Speed <span id="lblAnimSpeed">1.0x</span></div>
+                <input type="range" id="sldAnimSpeed" min="0" max="3" value="1" step="0.1">
+            </div>
+
+            <div class="section-title">Sweet Spot Analysis</div>
+            <div id="sweetSpotInfo" class="eq-block">
+                Sweet spot size depends on speaker configuration and frequency.
+                Higher frequencies have smaller sweet spots.
+            </div>
+        </div>
+
+        <!-- Speaker Config Tab -->
+        <div class="tab-content" data-panel="speakers">
+            <div class="section-title">Configuration</div>
+            <div class="ctrl-group">
+                <select id="selSpeakerConfig">
+                    <option value="stereo">Stereo (2.0)</option>
+                    <option value="quad">Quad (4.0)</option>
+                    <option value="surround51">5.1 Surround</option>
+                    <option value="surround71">7.1 Surround</option>
+                    <option value="octagonal">Octagonal (8.0)</option>
+                </select>
+            </div>
+
+            <div class="section-title">Speaker Gains (VBAP)</div>
+            <div id="speakerGains"></div>
+
+            <div class="section-title">VBAP Info</div>
+            <div class="eq-block">
+                <span class="hl">Vector Base Amplitude Panning</span><br>
+                Finds the two nearest speakers to the source direction and distributes gain using triangulation.<br><br>
+                <span class="hl">g</span> = [g1, g2] = p &middot; L<sup>-1</sup><br>
+                where L = speaker pair basis matrix
+            </div>
+        </div>
+
+        <!-- HRTF Tab -->
+        <div class="tab-content" data-panel="hrtf">
+            <div class="section-title">HRTF Explorer</div>
+            <div class="eq-block">
+                <span class="hl">HRTF</span> = Head-Related Transfer Function<br>
+                Encodes how sound from a specific direction is filtered by the head, ears, and torso.
+            </div>
+
+            <div class="section-title">ITD (Interaural Time Difference)</div>
+            <div class="hrtf-chart-wrap"><canvas id="canvasITD" width="256" height="120"></canvas></div>
+            <div class="metric-row">
+                <span class="metric-label">Current ITD</span>
+                <span class="metric-value" id="valITD">0.00 ms</span>
+            </div>
+
+            <div class="section-title">ILD (Interaural Level Difference)</div>
+            <div class="hrtf-chart-wrap"><canvas id="canvasILD" width="256" height="120"></canvas></div>
+            <div class="metric-row">
+                <span class="metric-label">Current ILD</span>
+                <span class="metric-value" id="valILD">0.0 dB</span>
+            </div>
+
+            <div class="section-title">Cones of Confusion</div>
+            <div class="eq-block">
+                <span class="hl">Cone of confusion:</span> A cone of directions around the interaural axis that produce identical ITD values.<br><br>
+                Sources on the same cone are ambiguous using ITD/ILD alone. The brain resolves this via:<br>
+                &bull; Pinna (ear shape) filtering<br>
+                &bull; Head movement<br>
+                &bull; Visual cues<br>
+                &bull; Prior expectation
+            </div>
+
+            <div class="section-title">Current Azimuth</div>
+            <div class="metric-row">
+                <span class="metric-label">Azimuth</span>
+                <span class="metric-value" id="valAzimuth">0.0&deg;</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Elevation</span>
+                <span class="metric-value" id="valElevation">0.0&deg;</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// SPATIAL AUDIO & AMBISONICS ENGINE
+// ============================================================
+
+const SOURCE_COLORS = [
+    '#e8a849','#4dabf7','#69db7c','#ff6b6b',
+    '#da77f2','#ffd43b','#38d9a9','#ff922b'
+];
+
+const SPEAKER_CONFIGS = {
+    stereo: [
+        { label:'L', angle:-30 },
+        { label:'R', angle:30 }
+    ],
+    quad: [
+        { label:'FL', angle:-45 },
+        { label:'FR', angle:45 },
+        { label:'RL', angle:-135 },
+        { label:'RR', angle:135 }
+    ],
+    surround51: [
+        { label:'L', angle:-30 },
+        { label:'R', angle:30 },
+        { label:'C', angle:0 },
+        { label:'LFE', angle:0 },
+        { label:'LS', angle:-110 },
+        { label:'RS', angle:110 }
+    ],
+    surround71: [
+        { label:'L', angle:-30 },
+        { label:'R', angle:30 },
+        { label:'C', angle:0 },
+        { label:'LFE', angle:0 },
+        { label:'LS', angle:-90 },
+        { label:'RS', angle:90 },
+        { label:'LB', angle:-135 },
+        { label:'RB', angle:135 }
+    ],
+    octagonal: [
+        { label:'1', angle:0 },
+        { label:'2', angle:45 },
+        { label:'3', angle:90 },
+        { label:'4', angle:135 },
+        { label:'5', angle:180 },
+        { label:'6', angle:-135 },
+        { label:'7', angle:-90 },
+        { label:'8', angle:-45 }
+    ]
+};
+
+// State
+let audioCtx = null;
+let sources = [];
+let selectedSourceIdx = 0;
+let activeTab = 'binaural';
+let outputMode = 'headphones';
+let canvasW = 0, canvasH = 0;
+let viewScale = 1.0;
+let fieldFreq = 440;
+let animSpeed = 1.0;
+let animTime = 0;
+let draggingSource = -1;
+let micStream = null;
+let isAudioStarted = false;
+
+// Drum loop scheduling
+let drumLoopTimers = {};
+
+// Source class
+class SpatialSource {
+    constructor(x, y, type, color, idx) {
+        this.x = x; // meters from center (-10 to 10)
+        this.y = y;
+        this.type = type;
+        this.color = color;
+        this.idx = idx;
+        this.volume = 0.7;
+        this.freq = 440;
+        this.muted = false;
+        this.audioNodes = null;
+    }
+
+    get azimuth() {
+        return Math.atan2(this.x, -this.y) * 180 / Math.PI;
+    }
+
+    get distance() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+
+    createAudioNodes() {
+        if (!audioCtx) return;
+        this.destroyAudioNodes();
+
+        const nodes = {};
+        nodes.gain = audioCtx.createGain();
+        nodes.gain.gain.value = this.muted ? 0 : this.volume;
+
+        nodes.panner = audioCtx.createPanner();
+        nodes.panner.panningModel = 'HRTF';
+        nodes.panner.distanceModel = document.getElementById('selDistModel').value;
+        nodes.panner.refDistance = parseFloat(document.getElementById('sldRefDist').value);
+        nodes.panner.maxDistance = parseFloat(document.getElementById('sldMaxDist').value);
+        nodes.panner.rolloffFactor = parseFloat(document.getElementById('sldRolloff').value);
+        nodes.panner.positionX.value = this.x;
+        nodes.panner.positionY.value = 0;
+        nodes.panner.positionZ.value = -this.y;
+
+        this.createSourceNode(nodes);
+
+        nodes.gain.connect(nodes.panner);
+        nodes.panner.connect(audioCtx.destination);
+
+        this.audioNodes = nodes;
+    }
+
+    createSourceNode(nodes) {
+        if (this.type === 'whitenoise' || this.type === 'pinknoise') {
+            const bufSize = audioCtx.sampleRate * 2;
+            const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            if (this.type === 'whitenoise') {
+                for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+            } else {
+                // Pink noise approximation (Voss-McCartney)
+                let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+                for (let i = 0; i < bufSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886*b0 + white*0.0555179;
+                    b1 = 0.99332*b1 + white*0.0750759;
+                    b2 = 0.96900*b2 + white*0.1538520;
+                    b3 = 0.86650*b3 + white*0.3104856;
+                    b4 = 0.55000*b4 + white*0.5329522;
+                    b5 = -0.7616*b5 - white*0.0168980;
+                    data[i] = (b0+b1+b2+b3+b4+b5+b6+white*0.5362)*0.11;
+                    b6 = white*0.115926;
+                }
+            }
+            nodes.source = audioCtx.createBufferSource();
+            nodes.source.buffer = buf;
+            nodes.source.loop = true;
+            nodes.source.connect(nodes.gain);
+            nodes.source.start();
+        } else if (this.type === 'sine') {
+            nodes.source = audioCtx.createOscillator();
+            nodes.source.type = 'sine';
+            nodes.source.frequency.value = this.freq;
+            nodes.source.connect(nodes.gain);
+            nodes.source.start();
+        } else if (this.type === 'drumloop') {
+            this.startDrumLoop(nodes);
+        } else if (this.type === 'mic') {
+            this.startMic(nodes);
+        }
+    }
+
+    startDrumLoop(nodes) {
+        // Synthesized drum loop using oscillators and noise
+        nodes.drumGain = audioCtx.createGain();
+        nodes.drumGain.gain.value = 1;
+        nodes.drumGain.connect(nodes.gain);
+        nodes._drumActive = true;
+
+        const bpm = 120;
+        const stepTime = 60 / bpm / 4; // 16th notes
+        // Pattern: K=kick, S=snare, H=hihat
+        // K...S...K...S.K.
+        const pattern = [
+            'K','H','H','H','S','H','H','H','K','H','K','H','S','H','K','H'
+        ];
+        let step = 0;
+
+        const scheduleStep = () => {
+            if (!nodes._drumActive) return;
+            const now = audioCtx.currentTime;
+            const sound = pattern[step % pattern.length];
+
+            if (sound === 'K') this.playKick(nodes.drumGain, now);
+            else if (sound === 'S') this.playSnare(nodes.drumGain, now);
+            else if (sound === 'H') this.playHihat(nodes.drumGain, now);
+
+            step++;
+            nodes._drumTimer = setTimeout(scheduleStep, stepTime * 1000);
+        };
+        scheduleStep();
+    }
+
+    playKick(dest, time) {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(30, time + 0.15);
+        g.gain.setValueAtTime(0.8, time);
+        g.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+        osc.connect(g); g.connect(dest);
+        osc.start(time); osc.stop(time + 0.3);
+    }
+
+    playSnare(dest, time) {
+        // Tone
+        const osc = audioCtx.createOscillator();
+        const g1 = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = 200;
+        g1.gain.setValueAtTime(0.5, time);
+        g1.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+        osc.connect(g1); g1.connect(dest);
+        osc.start(time); osc.stop(time + 0.15);
+        // Noise
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.12, audioCtx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const ns = audioCtx.createBufferSource();
+        ns.buffer = buf;
+        const g2 = audioCtx.createGain();
+        g2.gain.setValueAtTime(0.6, time);
+        g2.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = 'highpass'; hp.frequency.value = 2000;
+        ns.connect(hp); hp.connect(g2); g2.connect(dest);
+        ns.start(time); ns.stop(time + 0.15);
+    }
+
+    playHihat(dest, time) {
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const ns = audioCtx.createBufferSource();
+        ns.buffer = buf;
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(0.3, time);
+        g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = 'highpass'; hp.frequency.value = 6000;
+        ns.connect(hp); hp.connect(g); g.connect(dest);
+        ns.start(time); ns.stop(time + 0.06);
+    }
+
+    async startMic(nodes) {
+        try {
+            if (!micStream) {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+            nodes.source = audioCtx.createMediaStreamSource(micStream);
+            nodes.source.connect(nodes.gain);
+        } catch (e) {
+            console.warn('Mic not available', e);
+        }
+    }
+
+    updatePosition() {
+        if (!this.audioNodes || !this.audioNodes.panner) return;
+        const p = this.audioNodes.panner;
+        p.positionX.setValueAtTime(this.x, audioCtx.currentTime);
+        p.positionY.setValueAtTime(0, audioCtx.currentTime);
+        p.positionZ.setValueAtTime(-this.y, audioCtx.currentTime);
+    }
+
+    updateParams() {
+        if (!this.audioNodes) return;
+        this.audioNodes.gain.gain.setValueAtTime(
+            this.muted ? 0 : this.volume, audioCtx.currentTime
+        );
+        if (this.audioNodes.source && this.audioNodes.source.frequency) {
+            this.audioNodes.source.frequency.setValueAtTime(this.freq, audioCtx.currentTime);
+        }
+        const p = this.audioNodes.panner;
+        p.distanceModel = document.getElementById('selDistModel').value;
+        p.refDistance = parseFloat(document.getElementById('sldRefDist').value);
+        p.maxDistance = parseFloat(document.getElementById('sldMaxDist').value);
+        p.rolloffFactor = parseFloat(document.getElementById('sldRolloff').value);
+    }
+
+    destroyAudioNodes() {
+        if (!this.audioNodes) return;
+        if (this.audioNodes._drumActive) {
+            this.audioNodes._drumActive = false;
+            clearTimeout(this.audioNodes._drumTimer);
+        }
+        try {
+            if (this.audioNodes.source && this.audioNodes.source.stop) this.audioNodes.source.stop();
+        } catch(e) {}
+        try { this.audioNodes.gain.disconnect(); } catch(e) {}
+        try { this.audioNodes.panner.disconnect(); } catch(e) {}
+        this.audioNodes = null;
+    }
+}
+
+// ============================================================
+// AUDIO INIT
+// ============================================================
+
+function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.listener.positionX.value = 0;
+    audioCtx.listener.positionY.value = 0;
+    audioCtx.listener.positionZ.value = 0;
+    audioCtx.listener.forwardX.value = 0;
+    audioCtx.listener.forwardY.value = 0;
+    audioCtx.listener.forwardZ.value = -1;
+    audioCtx.listener.upX.value = 0;
+    audioCtx.listener.upY.value = 1;
+    audioCtx.listener.upZ.value = 0;
+    isAudioStarted = true;
+
+    // Re-create audio nodes for existing sources
+    sources.forEach(s => s.createAudioNodes());
+}
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+
+const mainCanvas = document.getElementById('mainCanvas');
+const ctx = mainCanvas.getContext('2d');
+
+function resizeCanvas() {
+    const container = mainCanvas.parentElement;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    mainCanvas.width = w * dpr;
+    mainCanvas.height = h * dpr;
+    mainCanvas.style.width = w + 'px';
+    mainCanvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    canvasW = w;
+    canvasH = h;
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+// ============================================================
+// COORDINATE TRANSFORMS
+// ============================================================
+
+const FIELD_RADIUS = 10; // meters
+
+function worldToScreen(wx, wy) {
+    const cx = canvasW / 2;
+    const cy = canvasH / 2;
+    const scale = Math.min(canvasW, canvasH) / (FIELD_RADIUS * 2.4) * viewScale;
+    return {
+        x: cx + wx * scale,
+        y: cy + wy * scale
+    };
+}
+
+function screenToWorld(sx, sy) {
+    const cx = canvasW / 2;
+    const cy = canvasH / 2;
+    const scale = Math.min(canvasW, canvasH) / (FIELD_RADIUS * 2.4) * viewScale;
+    return {
+        x: (sx - cx) / scale,
+        y: (sy - cy) / scale
+    };
+}
+
+// ============================================================
+// MAIN CANVAS DRAWING
+// ============================================================
+
+function drawMain() {
+    ctx.clearRect(0, 0, canvasW, canvasH);
+
+    // Background grid
+    drawGrid();
+
+    // Distance rings
+    drawDistanceRings();
+
+    // Speaker config (if on speakers tab)
+    if (activeTab === 'speakers' || activeTab === 'soundfield') {
+        drawSpeakers();
+    }
+
+    // Draw sources
+    sources.forEach((s, i) => drawSource(s, i));
+
+    // Draw listener at center
+    drawListener();
+
+    // Overlay for HRTF tab
+    if (activeTab === 'hrtf' && sources.length > 0) {
+        drawHRTFOverlay();
+    }
+}
+
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(212,135,14,0.04)';
+    ctx.lineWidth = 1;
+    const step = 1; // 1 meter
+    for (let m = -FIELD_RADIUS; m <= FIELD_RADIUS; m += step) {
+        const p1 = worldToScreen(m, -FIELD_RADIUS);
+        const p2 = worldToScreen(m, FIELD_RADIUS);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+
+        const p3 = worldToScreen(-FIELD_RADIUS, m);
+        const p4 = worldToScreen(FIELD_RADIUS, m);
+        ctx.beginPath();
+        ctx.moveTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.stroke();
+    }
+}
+
+function drawDistanceRings() {
+    const center = worldToScreen(0, 0);
+    ctx.strokeStyle = 'rgba(212,135,14,0.08)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    for (let r = 2; r <= 10; r += 2) {
+        const p = worldToScreen(r, 0);
+        const radius = p.x - center.x;
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = 'rgba(255,245,230,0.15)';
+        ctx.font = '10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(r + 'm', center.x + radius + 2, center.y - 4);
+    }
+    ctx.setLineDash([]);
+
+    // Axes
+    ctx.strokeStyle = 'rgba(212,135,14,0.1)';
+    const top = worldToScreen(0, -FIELD_RADIUS);
+    const bot = worldToScreen(0, FIELD_RADIUS);
+    const lft = worldToScreen(-FIELD_RADIUS, 0);
+    const rgt = worldToScreen(FIELD_RADIUS, 0);
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y); ctx.lineTo(bot.x, bot.y);
+    ctx.moveTo(lft.x, lft.y); ctx.lineTo(rgt.x, rgt.y);
+    ctx.stroke();
+
+    // Direction labels
+    ctx.fillStyle = 'rgba(255,245,230,0.2)';
+    ctx.font = '11px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('FRONT', center.x, top.y + 16);
+    ctx.fillText('BACK', center.x, bot.y - 8);
+    ctx.textAlign = 'left';
+    ctx.fillText('LEFT', lft.x + 8, center.y - 4);
+    ctx.textAlign = 'right';
+    ctx.fillText('RIGHT', rgt.x - 8, center.y - 4);
+}
+
+function drawListener() {
+    const c = worldToScreen(0, 0);
+    // Head circle
+    ctx.fillStyle = 'rgba(212,135,14,0.15)';
+    ctx.strokeStyle = 'rgba(212,135,14,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Ears
+    ctx.fillStyle = 'rgba(212,135,14,0.4)';
+    ctx.beginPath();
+    ctx.arc(c.x - 16, c.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(c.x + 16, c.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Nose direction indicator
+    ctx.strokeStyle = 'rgba(212,135,14,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - 14);
+    ctx.lineTo(c.x, c.y - 22);
+    ctx.stroke();
+
+    // Small triangle nose
+    ctx.fillStyle = 'rgba(212,135,14,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - 24);
+    ctx.lineTo(c.x - 4, c.y - 19);
+    ctx.lineTo(c.x + 4, c.y - 19);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.font = '9px JetBrains Mono';
+    ctx.fillStyle = 'rgba(255,245,230,0.3)';
+    ctx.textAlign = 'center';
+    ctx.fillText('LISTENER', c.x, c.y + 28);
+}
+
+function drawSource(src, idx) {
+    const p = worldToScreen(src.x, src.y);
+    const isSelected = idx === selectedSourceIdx;
+    const r = isSelected ? 12 : 9;
+
+    // Glow
+    if (isSelected) {
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 30);
+        grad.addColorStop(0, src.color + '40');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Pulse animation for active sources
+    if (!src.muted && isAudioStarted) {
+        const pulse = (Math.sin(Date.now() / 300) + 1) * 0.5;
+        ctx.strokeStyle = src.color + Math.floor(pulse * 60 + 20).toString(16).padStart(2,'0');
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r + 4 + pulse * 6, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Source dot
+    ctx.fillStyle = src.muted ? 'rgba(100,100,100,0.5)' : src.color;
+    ctx.strokeStyle = isSelected ? '#fff' : src.color;
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Label
+    ctx.font = 'bold 10px JetBrains Mono';
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(idx + 1, p.x, p.y);
+    ctx.textBaseline = 'alphabetic';
+
+    // Line to center
+    const c = worldToScreen(0, 0);
+    ctx.strokeStyle = src.color + '30';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Info text
+    ctx.font = '9px JetBrains Mono';
+    ctx.fillStyle = src.color + 'cc';
+    ctx.textAlign = 'center';
+    const az = src.azimuth.toFixed(0);
+    const dist = src.distance.toFixed(1);
+    ctx.fillText(`${az}° / ${dist}m`, p.x, p.y + r + 14);
+}
+
+function drawSpeakers() {
+    const config = SPEAKER_CONFIGS[document.getElementById('selSpeakerConfig').value];
+    if (!config) return;
+
+    const spkDist = 6; // meters from center
+    config.forEach((spk, i) => {
+        const rad = spk.angle * Math.PI / 180;
+        const sx = Math.sin(rad) * spkDist;
+        const sy = -Math.cos(rad) * spkDist;
+        const p = worldToScreen(sx, sy);
+
+        // Speaker icon
+        ctx.fillStyle = 'rgba(212,135,14,0.2)';
+        ctx.strokeStyle = 'rgba(212,135,14,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(p.x - 8, p.y - 10, 16, 20);
+        ctx.fill();
+        ctx.stroke();
+
+        // Cone
+        ctx.beginPath();
+        const coneAng = Math.atan2(-sy, -sx);
+        ctx.moveTo(p.x + Math.cos(coneAng - 0.3) * 12, p.y + Math.sin(coneAng - 0.3) * 12);
+        ctx.lineTo(p.x + Math.cos(coneAng) * 20, p.y + Math.sin(coneAng) * 20);
+        ctx.lineTo(p.x + Math.cos(coneAng + 0.3) * 12, p.y + Math.sin(coneAng + 0.3) * 12);
+        ctx.strokeStyle = 'rgba(212,135,14,0.3)';
+        ctx.stroke();
+
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillStyle = 'rgba(232,160,73,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText(spk.label, p.x, p.y + 28);
+    });
+}
+
+function drawHRTFOverlay() {
+    if (sources.length === 0) return;
+    const src = sources[selectedSourceIdx] || sources[0];
+    const c = worldToScreen(0, 0);
+
+    // Draw azimuth arc
+    const azRad = -src.azimuth * Math.PI / 180 + Math.PI / 2;
+    ctx.strokeStyle = 'rgba(232,160,73,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 50, -Math.PI / 2, azRad - Math.PI, src.azimuth > 0);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Cone of confusion visualization
+    const az = Math.abs(src.azimuth) * Math.PI / 180;
+    if (az > 0.1 && az < Math.PI - 0.1) {
+        ctx.strokeStyle = 'rgba(232,160,73,0.1)';
+        ctx.fillStyle = 'rgba(232,160,73,0.03)';
+        ctx.lineWidth = 1;
+        // Mirror azimuth
+        const mirrorAz = Math.PI - az;
+        const d = src.distance;
+        const scale = Math.min(canvasW, canvasH) / (FIELD_RADIUS * 2.4) * viewScale;
+
+        // Draw cone hint
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y);
+        const mx1 = Math.sin(mirrorAz) * d;
+        const my1 = -Math.cos(mirrorAz) * d;
+        const mp1 = worldToScreen(mx1, my1);
+        ctx.lineTo(mp1.x, mp1.y);
+        ctx.stroke();
+
+        const mx2 = Math.sin(-mirrorAz) * d;
+        const my2 = -Math.cos(-mirrorAz) * d;
+        const mp2 = worldToScreen(mx2, my2);
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y);
+        ctx.lineTo(mp2.x, mp2.y);
+        ctx.stroke();
+
+        ctx.font = '9px JetBrains Mono';
+        ctx.fillStyle = 'rgba(232,160,73,0.3)';
+        ctx.textAlign = 'center';
+        ctx.fillText('cone of confusion', (mp1.x + mp2.x) / 2, (mp1.y + mp2.y) / 2);
+    }
+}
+
+// ============================================================
+// RIGHT PANEL RENDERERS
+// ============================================================
+
+function updateSourceMetrics() {
+    const container = document.getElementById('sourceMetrics');
+    if (!container) return;
+    let html = '';
+    sources.forEach((s, i) => {
+        const sel = i === selectedSourceIdx ? ' style="border-left:2px solid ' + s.color + ';padding-left:6px"' : '';
+        html += `<div class="metric-row"${sel}>
+            <span class="metric-label" style="color:${s.color}">S${i+1}</span>
+            <span class="metric-value">${s.azimuth.toFixed(1)}° / ${s.distance.toFixed(2)}m</span>
+        </div>`;
+    });
+    container.innerHTML = html || '<div class="metric-row"><span class="metric-label">No sources</span></div>';
+}
+
+function drawBformatPatterns() {
+    const canvas = document.getElementById('canvasBformat');
+    if (!canvas) return;
+    const c = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const cx = w / 2, cy = h / 2;
+    const r = Math.min(w, h) * 0.35;
+
+    c.clearRect(0, 0, w, h);
+
+    // Background circles
+    c.strokeStyle = 'rgba(212,135,14,0.08)';
+    c.lineWidth = 0.5;
+    [0.25, 0.5, 0.75, 1.0].forEach(f => {
+        c.beginPath();
+        c.arc(cx, cy, r * f, 0, Math.PI * 2);
+        c.stroke();
+    });
+
+    // Draw axes
+    c.strokeStyle = 'rgba(212,135,14,0.1)';
+    c.beginPath();
+    c.moveTo(cx - r, cy); c.lineTo(cx + r, cy);
+    c.moveTo(cx, cy - r); c.lineTo(cx, cy + r);
+    c.stroke();
+
+    // W (omni) pattern
+    drawPolarPattern(c, cx, cy, r, (theta) => 0.7, 'rgba(232,168,73,0.6)', 'W');
+
+    // X pattern: cos(theta)
+    drawPolarPattern(c, cx, cy, r, (theta) => Math.cos(theta), 'rgba(77,171,247,0.6)', 'X');
+
+    // Y pattern: sin(theta)
+    drawPolarPattern(c, cx, cy, r, (theta) => Math.sin(theta), 'rgba(105,219,124,0.6)', 'Y');
+
+    // Source direction indicator
+    if (sources.length > 0) {
+        const src = sources[selectedSourceIdx] || sources[0];
+        const az = src.azimuth * Math.PI / 180;
+        c.strokeStyle = '#ff6b6b';
+        c.lineWidth = 2;
+        c.setLineDash([4, 4]);
+        c.beginPath();
+        c.moveTo(cx, cy);
+        c.lineTo(cx + Math.sin(az) * r, cy - Math.cos(az) * r);
+        c.stroke();
+        c.setLineDash([]);
+    }
+
+    // Legend
+    c.font = '9px JetBrains Mono';
+    c.textAlign = 'left';
+    c.fillStyle = 'rgba(232,168,73,0.8)'; c.fillText('W (omni)', 4, 12);
+    c.fillStyle = 'rgba(77,171,247,0.8)'; c.fillText('X (cos)', 4, 24);
+    c.fillStyle = 'rgba(105,219,124,0.8)'; c.fillText('Y (sin)', 4, 36);
+}
+
+function drawPolarPattern(c, cx, cy, r, func, color, label) {
+    c.strokeStyle = color;
+    c.lineWidth = 1.5;
+    c.beginPath();
+    for (let i = 0; i <= 360; i++) {
+        const theta = i * Math.PI / 180;
+        const val = func(theta);
+        const rr = Math.abs(val) * r;
+        const x = cx + Math.sin(theta) * rr;
+        const y = cy - Math.cos(theta) * rr;
+        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.closePath();
+    c.stroke();
+}
+
+function drawAmbiPatterns() {
+    const canvas = document.getElementById('canvasAmbiPatterns');
+    if (!canvas) return;
+    const c = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    c.clearRect(0, 0, w, h);
+
+    // Draw 4 mini polar plots (2x2)
+    const patterns = [
+        { label: 'W (Omni)', func: () => 0.7, color: 'rgba(232,168,73,0.7)' },
+        { label: 'X (F-B)', func: (t) => Math.cos(t), color: 'rgba(77,171,247,0.7)' },
+        { label: 'Y (L-R)', func: (t) => Math.sin(t), color: 'rgba(105,219,124,0.7)' },
+        { label: 'Z (U-D)', func: (t) => Math.cos(t), color: 'rgba(218,119,242,0.7)' }
+    ];
+
+    const halfW = w / 2, halfH = h / 2;
+    const miniR = Math.min(halfW, halfH) * 0.35;
+
+    patterns.forEach((pat, i) => {
+        const cx = (i % 2) * halfW + halfW / 2;
+        const cy = Math.floor(i / 2) * halfH + halfH / 2;
+
+        // Circle guides
+        c.strokeStyle = 'rgba(212,135,14,0.06)';
+        c.lineWidth = 0.5;
+        c.beginPath();
+        c.arc(cx, cy, miniR, 0, Math.PI * 2);
+        c.stroke();
+
+        // Pattern
+        drawPolarPattern(c, cx, cy, miniR, pat.func, pat.color);
+
+        // Label
+        c.font = '9px JetBrains Mono';
+        c.fillStyle = pat.color;
+        c.textAlign = 'center';
+        c.fillText(pat.label, cx, cy - miniR - 6);
+    });
+
+    // Source indicators on each
+    if (sources.length > 0) {
+        const src = sources[selectedSourceIdx] || sources[0];
+        const az = src.azimuth * Math.PI / 180;
+
+        // B-format coefficients
+        const W = 1.0;
+        const X = Math.cos(az);
+        const Y = Math.sin(az);
+        const Z = 0;
+
+        const coeffs = [W * 0.7, X, Y, Z];
+
+        patterns.forEach((pat, i) => {
+            const cx = (i % 2) * halfW + halfW / 2;
+            const cy = Math.floor(i / 2) * halfH + halfH / 2;
+
+            // Dot showing the coefficient
+            const val = Math.abs(coeffs[i]);
+            c.fillStyle = '#ff6b6b';
+            c.beginPath();
+            c.arc(cx + Math.sin(az) * miniR * val, cy - Math.cos(az) * miniR * val, 3, 0, Math.PI * 2);
+            c.fill();
+        });
+    }
+}
+
+function updateVirtualSpeakers() {
+    const container = document.getElementById('virtualSpeakerList');
+    if (!container) return;
+    // Virtual speaker array for ambisonics decode
+    const vspk = SPEAKER_CONFIGS.octagonal;
+    let html = '';
+    vspk.forEach((s, i) => {
+        html += `<div class="metric-row">
+            <span class="metric-label">VS${i+1} (${s.label})</span>
+            <span class="metric-value">${s.angle}°</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function updateBformatLevels() {
+    const container = document.getElementById('bformatLevels');
+    if (!container) return;
+    if (sources.length === 0) {
+        container.innerHTML = '<div class="metric-row"><span class="metric-label">No sources</span></div>';
+        return;
+    }
+
+    // Compute aggregate B-format from all sources
+    let W = 0, X = 0, Y = 0, Z = 0;
+    sources.forEach(s => {
+        if (s.muted) return;
+        const az = s.azimuth * Math.PI / 180;
+        const vol = s.volume;
+        W += vol;
+        X += vol * Math.cos(az);
+        Y += vol * Math.sin(az);
+        // Z = 0 (2D)
+    });
+
+    const channels = [
+        { label: 'W', val: W, color: '#e8a849' },
+        { label: 'X', val: X, color: '#4dabf7' },
+        { label: 'Y', val: Y, color: '#69db7c' },
+        { label: 'Z', val: Z, color: '#da77f2' }
+    ];
+
+    const maxVal = Math.max(1, ...channels.map(c => Math.abs(c.val)));
+
+    let html = '';
+    channels.forEach(ch => {
+        const pct = Math.abs(ch.val) / maxVal * 100;
+        html += `<div class="gain-bar-wrap">
+            <span class="gain-bar-label" style="color:${ch.color}">${ch.label}</span>
+            <div class="gain-bar-track">
+                <div class="gain-bar-fill" style="width:${pct}%;background:${ch.color}"></div>
+            </div>
+            <span class="gain-bar-val">${ch.val.toFixed(2)}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+// ============================================================
+// SOUND FIELD VISUALIZATION
+// ============================================================
+
+function drawPressureField() {
+    const canvas = document.getElementById('canvasPressure');
+    if (!canvas) return;
+    const c = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    const freq = fieldFreq;
+    const wavelength = 343 / freq; // speed of sound / freq
+    const k = 2 * Math.PI / wavelength;
+
+    document.getElementById('lblWavelength').textContent = wavelength.toFixed(2) + ' m';
+
+    const imgData = c.createImageData(w, h);
+    const data = imgData.data;
+
+    const fieldSize = 12; // meters across
+    const halfField = fieldSize / 2;
+
+    for (let py = 0; py < h; py++) {
+        for (let px = 0; px < w; px++) {
+            const wx = (px / w - 0.5) * fieldSize;
+            const wy = (py / h - 0.5) * fieldSize;
+
+            let pressure = 0;
+            sources.forEach(s => {
+                if (s.muted) return;
+                const dx = wx - s.x;
+                const dy = wy - s.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) + 0.01;
+                const amp = s.volume / (1 + dist * 0.5);
+                pressure += amp * Math.sin(k * dist - animTime * freq * 0.02);
+            });
+
+            // Colour map: blue negative, black zero, orange positive
+            const idx = (py * w + px) * 4;
+            const norm = Math.tanh(pressure * 2);
+            if (norm > 0) {
+                data[idx] = Math.floor(212 * norm);
+                data[idx+1] = Math.floor(135 * norm);
+                data[idx+2] = Math.floor(14 * norm);
+            } else {
+                data[idx] = 0;
+                data[idx+1] = Math.floor(-100 * norm);
+                data[idx+2] = Math.floor(-200 * norm);
+            }
+            data[idx+3] = 255;
+        }
+    }
+
+    c.putImageData(imgData, 0, 0);
+
+    // Draw source positions
+    sources.forEach((s, i) => {
+        const sx = (s.x / fieldSize + 0.5) * w;
+        const sy = (s.y / fieldSize + 0.5) * h;
+        c.fillStyle = s.color;
+        c.beginPath();
+        c.arc(sx, sy, 3, 0, Math.PI * 2);
+        c.fill();
+    });
+
+    // Sweet spot indicator
+    c.strokeStyle = 'rgba(255,255,255,0.3)';
+    c.lineWidth = 1;
+    c.setLineDash([2, 2]);
+    const spotSize = wavelength * 0.25; // rough sweet spot estimate
+    const spotPx = (spotSize / fieldSize) * w;
+    c.beginPath();
+    c.arc(w / 2, h / 2, Math.max(2, spotPx), 0, Math.PI * 2);
+    c.stroke();
+    c.setLineDash([]);
+
+    c.font = '8px JetBrains Mono';
+    c.fillStyle = 'rgba(255,255,255,0.4)';
+    c.textAlign = 'center';
+    c.fillText('sweet spot', w / 2, h / 2 + spotPx + 10);
+}
+
+// ============================================================
+// SPEAKER GAINS (VBAP)
+// ============================================================
+
+function computeVBAP(azimuthDeg, config) {
+    const speakers = config.map(s => s.angle);
+    const n = speakers.length;
+    const gains = new Array(n).fill(0);
+
+    if (n === 0) return gains;
+
+    const srcAng = azimuthDeg;
+
+    // Find the two enclosing speakers
+    let bestPair = [0, 1];
+    let bestSpan = 360;
+
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            let a1 = speakers[i], a2 = speakers[j];
+            // Normalize
+            let span = ((a2 - a1 + 360) % 360);
+            if (span > 180) continue;
+
+            // Check if source is within this span
+            let rel = ((srcAng - a1 + 360) % 360);
+            if (rel <= span && span < bestSpan) {
+                bestSpan = span;
+                bestPair = [i, j];
+            }
+        }
+    }
+
+    const [i, j] = bestPair;
+    const a1 = speakers[i] * Math.PI / 180;
+    const a2 = speakers[j] * Math.PI / 180;
+    const as = srcAng * Math.PI / 180;
+
+    // 2D VBAP
+    const l11 = Math.cos(a1), l12 = Math.sin(a1);
+    const l21 = Math.cos(a2), l22 = Math.sin(a2);
+    const det = l11 * l22 - l12 * l21;
+
+    if (Math.abs(det) > 0.0001) {
+        const g1 = (l22 * Math.cos(as) - l21 * Math.sin(as)) / det;
+        const g2 = (-l12 * Math.cos(as) + l11 * Math.sin(as)) / det;
+
+        // Normalize
+        const norm = Math.sqrt(g1 * g1 + g2 * g2);
+        gains[i] = Math.max(0, g1 / norm);
+        gains[j] = Math.max(0, g2 / norm);
+    } else {
+        gains[i] = 1;
+    }
+
+    return gains;
+}
+
+function updateSpeakerGains() {
+    const container = document.getElementById('speakerGains');
+    if (!container) return;
+
+    const configName = document.getElementById('selSpeakerConfig').value;
+    const config = SPEAKER_CONFIGS[configName];
+    if (!config) return;
+
+    if (sources.length === 0) {
+        container.innerHTML = '<div class="metric-row"><span class="metric-label">No sources</span></div>';
+        return;
+    }
+
+    const src = sources[selectedSourceIdx] || sources[0];
+    const gains = computeVBAP(src.azimuth, config);
+
+    let html = '';
+    config.forEach((spk, i) => {
+        const pct = (gains[i] * 100).toFixed(0);
+        const db = gains[i] > 0.001 ? (20 * Math.log10(gains[i])).toFixed(1) : '-inf';
+        html += `<div class="gain-bar-wrap">
+            <span class="gain-bar-label">${spk.label}</span>
+            <div class="gain-bar-track">
+                <div class="gain-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="gain-bar-val">${db} dB</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+// ============================================================
+// HRTF EXPLORER
+// ============================================================
+
+function drawITDChart() {
+    const canvas = document.getElementById('canvasITD');
+    if (!canvas) return;
+    const c = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    c.clearRect(0, 0, w, h);
+
+    // ITD model: Woodworth formula
+    // ITD = (a/v) * (sin(theta) + theta) for |theta| < pi/2
+    // where a = head radius (~0.0875m), v = 343 m/s
+
+    const a = 0.0875; // head radius in meters
+    const v = 343; // speed of sound
+
+    // Background
+    c.fillStyle = 'rgba(10,8,6,0.5)';
+    c.fillRect(0, 0, w, h);
+
+    // Grid
+    c.strokeStyle = 'rgba(212,135,14,0.08)';
+    c.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+        const y = (i / 4) * h;
+        c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke();
+    }
+    c.beginPath(); c.moveTo(w/2, 0); c.lineTo(w/2, h); c.stroke();
+
+    // Plot ITD vs azimuth
+    c.strokeStyle = 'rgba(232,168,73,0.8)';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    for (let px = 0; px < w; px++) {
+        const theta = (px / w - 0.5) * Math.PI; // -90 to +90
+        const itd = (a / v) * (Math.sin(Math.abs(theta)) + Math.abs(theta));
+        const sign = theta >= 0 ? 1 : -1;
+        const maxITD = 0.0007; // ~0.7ms
+        const ny = h / 2 - (sign * itd / maxITD) * (h / 2 - 10);
+        if (px === 0) c.moveTo(px, ny); else c.lineTo(px, ny);
+    }
+    c.stroke();
+
+    // Current position marker
+    if (sources.length > 0) {
+        const src = sources[selectedSourceIdx] || sources[0];
+        const theta = src.azimuth * Math.PI / 180;
+        const px = (theta / Math.PI + 0.5) * w;
+        const itd = (a / v) * (Math.sin(Math.abs(theta)) + Math.abs(theta));
+        const sign = theta >= 0 ? 1 : -1;
+        const maxITD = 0.0007;
+        const py = h / 2 - (sign * itd / maxITD) * (h / 2 - 10);
+
+        c.fillStyle = '#ff6b6b';
+        c.beginPath();
+        c.arc(px, py, 4, 0, Math.PI * 2);
+        c.fill();
+
+        document.getElementById('valITD').textContent = (sign * itd * 1000).toFixed(3) + ' ms';
+    }
+
+    // Labels
+    c.font = '8px JetBrains Mono';
+    c.fillStyle = 'rgba(255,245,230,0.3)';
+    c.textAlign = 'left';
+    c.fillText('-90°', 2, h - 2);
+    c.textAlign = 'right';
+    c.fillText('+90°', w - 2, h - 2);
+    c.textAlign = 'center';
+    c.fillText('0°', w / 2, h - 2);
+    c.fillText('ITD', w / 2, 10);
+}
+
+function drawILDChart() {
+    const canvas = document.getElementById('canvasILD');
+    if (!canvas) return;
+    const c = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    c.clearRect(0, 0, w, h);
+
+    c.fillStyle = 'rgba(10,8,6,0.5)';
+    c.fillRect(0, 0, w, h);
+
+    // Grid
+    c.strokeStyle = 'rgba(212,135,14,0.08)';
+    c.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+        const y = (i / 4) * h;
+        c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke();
+    }
+    c.beginPath(); c.moveTo(w/2, 0); c.lineTo(w/2, h); c.stroke();
+
+    // Approximate ILD: ~1.5 * sin(theta) * (f/1000) dB, capped at ~20dB
+    // Simple model for visualization
+    const freq = 1000; // reference
+    c.strokeStyle = 'rgba(105,219,124,0.8)';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    for (let px = 0; px < w; px++) {
+        const theta = (px / w - 0.5) * Math.PI;
+        const ild = 8 * Math.sin(theta); // simplified max ~8dB at 1kHz
+        const maxILD = 12;
+        const ny = h / 2 - (ild / maxILD) * (h / 2 - 10);
+        if (px === 0) c.moveTo(px, ny); else c.lineTo(px, ny);
+    }
+    c.stroke();
+
+    // High freq curve
+    c.strokeStyle = 'rgba(105,219,124,0.3)';
+    c.lineWidth = 1;
+    c.setLineDash([3, 3]);
+    c.beginPath();
+    for (let px = 0; px < w; px++) {
+        const theta = (px / w - 0.5) * Math.PI;
+        const ild = 15 * Math.sin(theta);
+        const maxILD = 20;
+        const ny = h / 2 - (ild / maxILD) * (h / 2 - 10);
+        if (px === 0) c.moveTo(px, ny); else c.lineTo(px, ny);
+    }
+    c.stroke();
+    c.setLineDash([]);
+
+    // Current marker
+    if (sources.length > 0) {
+        const src = sources[selectedSourceIdx] || sources[0];
+        const theta = src.azimuth * Math.PI / 180;
+        const px = (theta / Math.PI + 0.5) * w;
+        const ild = 8 * Math.sin(theta);
+        const maxILD = 12;
+        const py = h / 2 - (ild / maxILD) * (h / 2 - 10);
+
+        c.fillStyle = '#ff6b6b';
+        c.beginPath();
+        c.arc(px, py, 4, 0, Math.PI * 2);
+        c.fill();
+
+        document.getElementById('valILD').textContent = ild.toFixed(1) + ' dB';
+        document.getElementById('valAzimuth').textContent = src.azimuth.toFixed(1) + '\u00B0';
+        document.getElementById('valElevation').textContent = '0.0\u00B0';
+    }
+
+    c.font = '8px JetBrains Mono';
+    c.fillStyle = 'rgba(255,245,230,0.3)';
+    c.textAlign = 'left';
+    c.fillText('-90°', 2, h - 2);
+    c.textAlign = 'right';
+    c.fillText('+90°', w - 2, h - 2);
+    c.textAlign = 'center';
+    c.fillText('ILD (1kHz solid, 4kHz dashed)', w / 2, 10);
+}
+
+// ============================================================
+// SOURCE LIST UI
+// ============================================================
+
+function updateSourceList() {
+    const container = document.getElementById('sourceList');
+    let html = '';
+    sources.forEach((s, i) => {
+        const sel = i === selectedSourceIdx ? ' selected' : '';
+        const typeLabels = {
+            whitenoise: 'White', pinknoise: 'Pink', sine: 'Sine',
+            drumloop: 'Drum', mic: 'Mic'
+        };
+        html += `<div class="source-item${sel}" onclick="selectSource(${i})">
+            <div class="source-dot" style="background:${s.color}${s.muted ? ';opacity:0.3' : ''}"></div>
+            <span class="source-label">Source ${i + 1}</span>
+            <span class="source-info">${typeLabels[s.type] || s.type}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+
+    // Update controls to match selected source
+    if (sources.length > 0 && sources[selectedSourceIdx]) {
+        const s = sources[selectedSourceIdx];
+        document.getElementById('selSourceType').value = s.type;
+        document.getElementById('sldFreq').value = s.freq;
+        document.getElementById('lblFreq').textContent = s.freq + ' Hz';
+        document.getElementById('sldVol').value = s.volume * 100;
+        document.getElementById('lblVol').textContent = s.volume.toFixed(2);
+        document.getElementById('btnMute').textContent = s.muted ? 'UNMUTE' : 'MUTE';
+        document.getElementById('btnMute').className = s.muted ? 'btn active' : 'btn';
+    }
+}
+
+function selectSource(idx) {
+    selectedSourceIdx = idx;
+    updateSourceList();
+}
+
+function addSource(wx, wy) {
+    if (sources.length >= 8) return;
+    const idx = sources.length;
+    const types = ['whitenoise', 'pinknoise', 'sine', 'drumloop', 'whitenoise', 'sine', 'pinknoise', 'drumloop'];
+    const s = new SpatialSource(
+        wx !== undefined ? wx : (Math.random() - 0.5) * 8,
+        wy !== undefined ? wy : (Math.random() - 0.5) * 8,
+        types[idx],
+        SOURCE_COLORS[idx],
+        idx
+    );
+    sources.push(s);
+    selectedSourceIdx = idx;
+    if (isAudioStarted) s.createAudioNodes();
+    updateSourceList();
+}
+
+function removeSource() {
+    if (sources.length === 0) return;
+    const s = sources[selectedSourceIdx];
+    s.destroyAudioNodes();
+    sources.splice(selectedSourceIdx, 1);
+    // Re-index
+    sources.forEach((s, i) => { s.idx = i; s.color = SOURCE_COLORS[i]; });
+    if (selectedSourceIdx >= sources.length) selectedSourceIdx = Math.max(0, sources.length - 1);
+    updateSourceList();
+}
+
+// ============================================================
+// EVENT HANDLERS
+// ============================================================
+
+// Canvas mouse events
+let mouseDown = false;
+
+mainCanvas.addEventListener('mousedown', (e) => {
+    const rect = mainCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const world = screenToWorld(mx, my);
+
+    // Check if clicking on a source
+    let hitIdx = -1;
+    sources.forEach((s, i) => {
+        const sp = worldToScreen(s.x, s.y);
+        const dx = mx - sp.x, dy = my - sp.y;
+        if (Math.sqrt(dx * dx + dy * dy) < 16) hitIdx = i;
+    });
+
+    if (hitIdx >= 0) {
+        draggingSource = hitIdx;
+        selectedSourceIdx = hitIdx;
+        updateSourceList();
+    } else if (e.shiftKey || sources.length === 0) {
+        // Add new source on shift-click or if no sources
+        addSource(world.x, world.y);
+    } else {
+        // Select nearest or add
+        let nearest = -1, nearestDist = Infinity;
+        sources.forEach((s, i) => {
+            const d = Math.sqrt((world.x - s.x) ** 2 + (world.y - s.y) ** 2);
+            if (d < nearestDist) { nearestDist = d; nearest = i; }
+        });
+        if (nearestDist < 2) {
+            draggingSource = nearest;
+            selectedSourceIdx = nearest;
+            updateSourceList();
+        } else {
+            addSource(world.x, world.y);
+        }
+    }
+    mouseDown = true;
+});
+
+mainCanvas.addEventListener('mousemove', (e) => {
+    if (!mouseDown || draggingSource < 0) return;
+    const rect = mainCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const world = screenToWorld(mx, my);
+
+    const s = sources[draggingSource];
+    s.x = Math.max(-FIELD_RADIUS, Math.min(FIELD_RADIUS, world.x));
+    s.y = Math.max(-FIELD_RADIUS, Math.min(FIELD_RADIUS, world.y));
+    s.updatePosition();
+});
+
+mainCanvas.addEventListener('mouseup', () => {
+    mouseDown = false;
+    draggingSource = -1;
+});
+
+mainCanvas.addEventListener('mouseleave', () => {
+    mouseDown = false;
+    draggingSource = -1;
+});
+
+mainCanvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    viewScale *= e.deltaY > 0 ? 0.95 : 1.05;
+    viewScale = Math.max(0.3, Math.min(3, viewScale));
+});
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeTab = tab.dataset.tab;
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        document.querySelector(`.tab-content[data-panel="${activeTab}"]`).classList.add('active');
+    });
+});
+
+// Header buttons
+document.getElementById('btnStartAudio').addEventListener('click', function() {
+    initAudio();
+    this.classList.add('active');
+    this.textContent = 'AUDIO ON';
+});
+
+document.getElementById('btnHeadphone').addEventListener('click', function() {
+    outputMode = 'headphones';
+    this.classList.add('active');
+    document.getElementById('btnSpeaker').classList.remove('active');
+});
+
+document.getElementById('btnSpeaker').addEventListener('click', function() {
+    outputMode = 'speakers';
+    this.classList.add('active');
+    document.getElementById('btnHeadphone').classList.remove('active');
+});
+
+// Default headphone mode active
+document.getElementById('btnHeadphone').classList.add('active');
+
+// Source controls
+document.getElementById('btnAddSource').addEventListener('click', () => addSource());
+document.getElementById('btnRemoveSource').addEventListener('click', removeSource);
+
+document.getElementById('selSourceType').addEventListener('change', function() {
+    if (sources.length === 0) return;
+    const s = sources[selectedSourceIdx];
+    s.type = this.value;
+    if (isAudioStarted) s.createAudioNodes();
+    updateSourceList();
+});
+
+document.getElementById('sldFreq').addEventListener('input', function() {
+    const val = parseInt(this.value);
+    document.getElementById('lblFreq').textContent = val + ' Hz';
+    if (sources.length > 0) {
+        sources[selectedSourceIdx].freq = val;
+        sources[selectedSourceIdx].updateParams();
+    }
+});
+
+document.getElementById('sldVol').addEventListener('input', function() {
+    const val = parseInt(this.value) / 100;
+    document.getElementById('lblVol').textContent = val.toFixed(2);
+    if (sources.length > 0) {
+        sources[selectedSourceIdx].volume = val;
+        sources[selectedSourceIdx].updateParams();
+    }
+});
+
+document.getElementById('btnMute').addEventListener('click', function() {
+    if (sources.length === 0) return;
+    const s = sources[selectedSourceIdx];
+    s.muted = !s.muted;
+    s.updateParams();
+    updateSourceList();
+});
+
+// Distance model controls
+['selDistModel', 'sldRefDist', 'sldMaxDist', 'sldRolloff'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function() {
+        if (id === 'sldRefDist') document.getElementById('lblRefDist').textContent = this.value;
+        if (id === 'sldMaxDist') document.getElementById('lblMaxDist').textContent = this.value;
+        if (id === 'sldRolloff') document.getElementById('lblRolloff').textContent = this.value;
+        sources.forEach(s => s.updateParams());
+    });
+});
+
+// Sound field controls
+document.getElementById('sldFieldFreq').addEventListener('input', function() {
+    fieldFreq = parseInt(this.value);
+    document.getElementById('lblFieldFreq').textContent = fieldFreq + ' Hz';
+});
+
+document.getElementById('sldAnimSpeed').addEventListener('input', function() {
+    animSpeed = parseFloat(this.value);
+    document.getElementById('lblAnimSpeed').textContent = animSpeed.toFixed(1) + 'x';
+});
+
+// Speaker config
+document.getElementById('selSpeakerConfig').addEventListener('change', updateSpeakerGains);
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+
+let lastTime = 0;
+let frameCount = 0;
+
+function animate(timestamp) {
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    animTime += dt * animSpeed;
+    frameCount++;
+
+    resizeCanvas();
+    drawMain();
+
+    // Update right panel periodically
+    if (frameCount % 3 === 0) {
+        if (activeTab === 'binaural') {
+            updateSourceMetrics();
+            drawBformatPatterns();
+        } else if (activeTab === 'ambisonics') {
+            drawAmbiPatterns();
+            updateVirtualSpeakers();
+            updateBformatLevels();
+        } else if (activeTab === 'soundfield') {
+            drawPressureField();
+            updateSweetSpotInfo();
+        } else if (activeTab === 'speakers') {
+            updateSpeakerGains();
+        } else if (activeTab === 'hrtf') {
+            drawITDChart();
+            drawILDChart();
+        }
+    }
+
+    // Update overlay info
+    if (sources.length > 0) {
+        const s = sources[selectedSourceIdx] || sources[0];
+        document.getElementById('overlayInfo').innerHTML =
+            `Source ${selectedSourceIdx + 1}: <span class="val">${s.azimuth.toFixed(1)}°</span> az, ` +
+            `<span class="val">${s.distance.toFixed(2)}m</span> dist | ` +
+            `${sources.length}/8 sources | ` +
+            `Shift+click to add`;
+    }
+
+    requestAnimationFrame(animate);
+}
+
+function updateSweetSpotInfo() {
+    const el = document.getElementById('sweetSpotInfo');
+    if (!el) return;
+    const wavelength = 343 / fieldFreq;
+    const config = document.getElementById('selSpeakerConfig').value;
+    const nSpk = SPEAKER_CONFIGS[config].length;
+    const spotSize = wavelength * 0.3;
+    el.innerHTML = `
+        <span class="hl">Frequency:</span> ${fieldFreq} Hz<br>
+        <span class="hl">Wavelength:</span> ${wavelength.toFixed(2)} m<br>
+        <span class="hl">Sweet spot radius:</span> ~${spotSize.toFixed(2)} m<br>
+        <span class="hl">Config:</span> ${config} (${nSpk} speakers)<br><br>
+        Higher frequencies = smaller sweet spot.<br>
+        More speakers = more uniform field.
+    `;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+resizeCanvas();
+
+// Add two default sources
+addSource(-3, -2);
+addSource(3, -1);
+selectedSourceIdx = 0;
+updateSourceList();
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
