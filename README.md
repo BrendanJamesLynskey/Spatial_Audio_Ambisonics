@@ -2,6 +2,10 @@
 
 An interactive single-file HTML application for exploring spatial audio concepts including binaural rendering, first-order ambisonics, sound field visualization, speaker configurations with VBAP panning, and HRTF exploration.
 
+### [Launch App](https://brendanjameslynskey.github.io/Spatial_Audio_Ambisonics/)
+
+---
+
 ## Features
 
 ### 1. Binaural Panner
@@ -46,15 +50,6 @@ An interactive single-file HTML application for exploring spatial audio concepts
 - **Drum loop** - synthesized kick/snare/hihat pattern at 120 BPM
 - **Microphone input** - live audio from system mic
 - Each source independently positionable, with volume and mute controls
-
-## Usage
-
-1. Open `index.html` in a modern browser (Chrome, Firefox, Edge)
-2. Click **START AUDIO** to initialize the Web Audio context
-3. Use **headphones** for proper binaural/HRTF rendering
-4. Click on the canvas to place sources, drag to reposition
-5. Switch between tabs to explore different spatial audio concepts
-6. Adjust controls in the left panel to modify source properties
 
 ## Controls
 
