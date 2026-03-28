@@ -1921,9 +1921,17 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 // Header buttons
 document.getElementById('btnStartAudio').addEventListener('click', function() {
-    initAudio();
-    this.classList.add('active');
-    this.textContent = 'AUDIO ON';
+    if (!isAudioStarted) {
+        initAudio();
+        this.classList.add('active');
+        this.textContent = 'AUDIO ON';
+    } else {
+        sources.forEach(s => s.destroyAudioNodes());
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        isAudioStarted = false;
+        this.classList.remove('active');
+        this.textContent = 'START AUDIO';
+    }
 });
 
 document.getElementById('btnHeadphone').addEventListener('click', function() {
