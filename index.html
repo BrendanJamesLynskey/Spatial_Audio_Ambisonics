@@ -874,15 +874,15 @@ class SpatialSource {
 function initAudio() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    audioCtx.listener.positionX.value = 0;
-    audioCtx.listener.positionY.value = 0;
-    audioCtx.listener.positionZ.value = 0;
-    audioCtx.listener.forwardX.value = 0;
-    audioCtx.listener.forwardY.value = 0;
-    audioCtx.listener.forwardZ.value = -1;
-    audioCtx.listener.upX.value = 0;
-    audioCtx.listener.upY.value = 1;
-    audioCtx.listener.upZ.value = 0;
+    const L = audioCtx.listener;
+    if (L.positionX) {
+        L.positionX.value = 0; L.positionY.value = 0; L.positionZ.value = 0;
+        L.forwardX.value = 0; L.forwardY.value = 0; L.forwardZ.value = -1;
+        L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0;
+    } else {
+        L.setPosition(0, 0, 0);
+        L.setOrientation(0, 0, -1, 0, 1, 0);
+    }
     isAudioStarted = true;
 
     // Re-create audio nodes for existing sources
