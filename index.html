@@ -874,6 +874,7 @@ class SpatialSource {
 function initAudio() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
     audioCtx.listener.positionX.value = 0;
     audioCtx.listener.positionY.value = 0;
     audioCtx.listener.positionZ.value = 0;
