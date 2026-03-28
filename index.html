@@ -222,6 +222,9 @@
         }
         .btn:hover { background:rgba(212,135,14,0.2); border-color:var(--accent-1); }
         .btn.active { background:var(--accent-1); color:#0a0806; }
+        .ctrl-group.ctrl-disabled .ctrl-label { opacity:0.35; }
+        .ctrl-group.ctrl-disabled .ctrl-label span { color:var(--text-muted); }
+        input[type="range"]:disabled { opacity:0.25; cursor:not-allowed; }
         .btn-row { display:flex; gap:4px; }
         .btn-row .btn { flex:1; }
 
@@ -719,7 +722,11 @@ class SpatialSource {
             nodes.source = audioCtx.createBufferSource();
             nodes.source.buffer = buf;
             nodes.source.loop = true;
-            nodes.source.connect(nodes.gain);
+            nodes.filter = audioCtx.createBiquadFilter();
+            nodes.filter.type = 'lowpass';
+            nodes.filter.frequency.value = this.freq;
+            nodes.source.connect(nodes.filter);
+            nodes.filter.connect(nodes.gain);
             nodes.source.start();
         } else if (this.type === 'sine') {
             nodes.source = audioCtx.createOscillator();
@@ -844,6 +851,9 @@ class SpatialSource {
         );
         if (this.audioNodes.source && this.audioNodes.source.frequency) {
             this.audioNodes.source.frequency.setValueAtTime(this.freq, audioCtx.currentTime);
+        }
+        if (this.audioNodes.filter) {
+            this.audioNodes.filter.frequency.setValueAtTime(this.freq, audioCtx.currentTime);
         }
         const p = this.audioNodes.panner;
         p.distanceModel = document.getElementById('selDistModel').value;
@@ -1791,12 +1801,17 @@ function updateSourceList() {
     if (sources.length > 0 && sources[selectedSourceIdx]) {
         const s = sources[selectedSourceIdx];
         document.getElementById('selSourceType').value = s.type;
-        document.getElementById('sldFreq').value = s.freq;
-        document.getElementById('lblFreq').textContent = s.freq + ' Hz';
         document.getElementById('sldVol').value = s.volume * 100;
         document.getElementById('lblVol').textContent = s.volume.toFixed(2);
         document.getElementById('btnMute').textContent = s.muted ? 'UNMUTE' : 'MUTE';
         document.getElementById('btnMute').className = s.muted ? 'btn active' : 'btn';
+        const freqEnabled = s.type === 'sine' || s.type === 'whitenoise' || s.type === 'pinknoise';
+        const freqSlider = document.getElementById('sldFreq');
+        const freqGroup = freqSlider.parentElement;
+        freqSlider.disabled = !freqEnabled;
+        freqSlider.value = s.freq;
+        document.getElementById('lblFreq').textContent = freqEnabled ? s.freq + ' Hz' : '—';
+        freqGroup.classList.toggle('ctrl-disabled', !freqEnabled);
     }
 }
 
